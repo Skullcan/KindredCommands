@@ -4,6 +4,7 @@ using System.Text.RegularExpressions;
 using KindredCommands.Commands.Converters;
 using ProjectM;
 using ProjectM.Network;
+using ProjectM.UI;
 using Stunlock.Core;
 using Unity.Collections;
 using Unity.Entities;
@@ -257,6 +258,45 @@ public static class PlayerCommands
 		charEntity.Write(new LastTranslation { Value = pos });
 		ctx.Reply($"Teleported {charEntity.Read<PlayerCharacter>().Name} to {pos}");
 	}
+
+	#region Comandos Personalizados Parabellum
+	[Command("teleporttoplayer", "tpl", description: "Teleport to a specific player.", adminOnly: true)]
+	public static void TeleportToPlayer(ChatCommandContext ctx, FoundPlayer player = null)
+	{
+		if (player == null)
+		{
+			ctx.Reply($"Player doesn't exist.");
+			return;
+		}
+
+		var currentPlayer = ctx.Event.SenderCharacterEntity;
+		var charEntity = player.Value.CharEntity;
+		var pos = charEntity.Read<Translation>().Value;
+
+		currentPlayer.Write(new Translation { Value = pos });
+		currentPlayer.Write(new LastTranslation { Value = pos });
+		ctx.Reply($"Teleported to {charEntity.Read<PlayerCharacter>().Name}");
+	}
+
+	[Command("teleportplayertome", "tplme", description: "Teleport a specific player to you.", adminOnly: true)]
+	public static void TeleportToPlayerMe(ChatCommandContext ctx, FoundPlayer player = null)
+	{
+		if (player == null)
+		{
+			ctx.Reply($"Player doesn't exist.");
+			return;
+		}
+
+		var currentPlayer = ctx.Event.SenderCharacterEntity;
+		var charEntity = player.Value.CharEntity;
+		var pos = currentPlayer.Read<Translation>().Value;
+
+		charEntity.Write(new Translation { Value = pos });
+		charEntity.Write(new LastTranslation { Value = pos });
+		ctx.Reply($"{charEntity.Read<PlayerCharacter>().Name} teleported to you.");
+	}
+
+	#endregion
 
 	[Command ("fly" , description: "Toggle fly mode for a player.", adminOnly: true)]
 	public static void Fly(ChatCommandContext ctx, FoundPlayer player = null)

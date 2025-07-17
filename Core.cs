@@ -7,6 +7,7 @@ using ProjectM;
 using ProjectM.CastleBuilding;
 using ProjectM.Physics;
 using ProjectM.Scripting;
+using Stunlock.Core;
 using Unity.Entities;
 using UnityEngine;
 
@@ -92,6 +93,27 @@ internal static class Core
 
 		_hasInitialized = true;
 		Log.LogInfo($"{nameof(InitializeAfterLoaded)} completed");
+
+		#region Personalizado Parabellum
+		// Limita o tamanho do stack da blood essence para ser possivel somente 5 dias de castelo full.
+		var scriptMapper = Server.GetExistingSystemManaged<ServerScriptMapper>();
+		var itemLookupMap = scriptMapper.GetServerGameManager().ItemLookupMap;
+		var bloodEssence = new PrefabGUID(862477668);
+		var demonFragmen = new PrefabGUID(-77477508);
+
+		if (itemLookupMap.TryGetValue(bloodEssence, out var bloodData))
+		{
+			bloodData.MaxAmount = 540;
+			itemLookupMap[bloodEssence] = bloodData;
+		}
+
+		if (itemLookupMap.TryGetValue(demonFragmen, out var demonData))
+		{
+			demonData.MaxAmount = 1000;
+			itemLookupMap[demonFragmen] = demonData;
+		}
+		#endregion
+
 	}
 	private static bool _hasInitialized = false;
 

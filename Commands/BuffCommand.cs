@@ -67,6 +67,49 @@ internal class BuffCommands
 		}
 	}
 
+	#region Comandos Personalizados Parabellum
+
+	[Command("stay", adminOnly: true)]
+	public static void StayCommand(ChatCommandContext ctx, OnlinePlayer player = null, int duration = 100, bool immortal = true)
+	{
+		var userEntity = player?.Value.UserEntity ?? ctx.Event.SenderUserEntity;
+		var charEntity = player?.Value.CharEntity ?? ctx.Event.SenderCharacterEntity;
+		var buffEntities = Helper.GetEntitiesByComponentTypes<Buff, PrefabGUID>();
+
+		var solarusAura = new PrefabGUID(358972271);
+		var stunnedAura = new PrefabGUID(390920678);
+
+		foreach (var buffEntity in buffEntities)
+		{
+			if (buffEntity.Read<EntityOwner>().Owner == charEntity && buffEntity.Read<PrefabGUID>().GuidHash == 390920678)
+			{
+				Buffs.RemoveBuff(charEntity, solarusAura);
+				Buffs.RemoveBuff(charEntity, stunnedAura);
+				ctx.Reply($"Player {userEntity.Read<User>().CharacterName} is now free.");
+				return;
+			}
+		}
+
+		if (player == null)
+		{
+			ctx.Reply($"Player name is required.");
+			return;
+		}
+
+		if (duration == 0)
+		{
+			ctx.Reply($"Duration is required.");
+			return;
+		}
+
+		Buffs.AddBuff(userEntity, charEntity, solarusAura, duration, immortal);
+		Buffs.AddBuff(userEntity, charEntity, stunnedAura, duration, immortal);
+
+		ctx.Reply($"Player {userEntity.Read<User>().CharacterName} is now frozen in place for {duration} seconds.");
+	}
+
+	#endregion
+
 	internal static void DebuffCommand(Entity character, PrefabGUID buff_InCombat_PvPVampire)
 	{
 		throw new NotImplementedException();
