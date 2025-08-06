@@ -40,6 +40,12 @@ public static class OnUserConnected_Patch
 					AdminService.AdminUser(userEntity);
 				}
 			}
+			#region Parabellum Rising Starter Kits
+			if (!DBKits.UsedKits.ContainsKey(userData.PlatformId))
+			{
+				DBKits.UsedKits.TryAdd(userData.PlatformId, false);
+			}
+			#endregion
 		}
 		catch (Exception e)
 		{

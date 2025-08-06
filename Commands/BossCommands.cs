@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using KindredCommands.Commands.Converters;
+using KindredCommands.Data;
 using ProjectM;
 using ProjectM.Network;
 using Stunlock.Core;
@@ -98,7 +99,7 @@ internal class BossCommands
 					return following.Read<Translation>().Value;
 		}
 
-        foreach (var entity in Helper.GetEntitiesByComponentType<VBloodUnit>(includeDisabled: true).ToArray()
+		foreach (var entity in Helper.GetEntitiesByComponentType<VBloodUnit>(includeDisabled: true).ToArray()
 			.Where(x => x.Read<PrefabGUID>().GuidHash == boss.Value.GuidHash)
 			.Where(x => Vector3.Distance(GetBossPos(x), Vector3.zero)>1))
         {
@@ -150,7 +151,6 @@ internal class BossCommands
 			ctx.Reply($"{boss.Name} is already locked");
 	}
 
-
 	[Command("unlock", "u", description: "Unlocks the specified boss allowing it to spawn.", adminOnly: true)]
 	public static void UnlockBossCommand(ChatCommandContext ctx, FoundVBlood boss)
 	{
@@ -193,4 +193,79 @@ internal class BossCommands
             ctx.Reply("No bosses are currently locked.");
         }
     }
+	
+	#region Pabellum Progression Commands
+	private readonly static List<FoundVBlood> BossesToLock =
+	[
+		new (Prefabs.CHAR_Undead_CursedSmith_VBlood, "Cyril"),
+        new (Prefabs.CHAR_ChurchOfLight_Overseer_VBlood, "Sir Magnus the Overseer"),
+        new (Prefabs.CHAR_ChurchOfLight_Sommelier_VBlood, "Baron du Bouchon"),
+        new (Prefabs.CHAR_Harpy_Matriarch_VBlood, "Morian"),
+        new (Prefabs.CHAR_ArchMage_VBlood, "Mairwyn the Elementalist"),
+        new (Prefabs.CHAR_Gloomrot_TheProfessor_VBlood, "Henry Blackbrew"),
+        //new (Prefabs.CHAR_Blackfang_Livith_VBlood, "Jakira the Shadow Huntress"),
+        new (Prefabs.CHAR_Blackfang_CarverBoss_VBlood, "Stavros the Carver"),
+        new (Prefabs.CHAR_Blackfang_Lucie_VBlood, "Lucile the Venom Alchemist"),
+        new (Prefabs.CHAR_Cursed_Witch_VBlood, "Matka"),
+        new (Prefabs.CHAR_Winter_Yeti_VBlood, "Terrorclaw"),
+        new (Prefabs.CHAR_ChurchOfLight_Cardinal_VBlood, "Azariel"),
+        new (Prefabs.CHAR_Gloomrot_RailgunSergeant_VBlood, "Voltatia"),
+        new (Prefabs.CHAR_VHunter_CastleMan, "Simon Belmont"),
+        new (Prefabs.CHAR_Blackfang_Valyr_VBlood, "Dantos the Forgebinder"),
+        new (Prefabs.CHAR_BatVampire_VBlood, "Styx (Bat)"),
+        new (Prefabs.CHAR_Cursed_MountainBeast_VBlood, "Gorecrusher the Behemoth"),
+        new (Prefabs.CHAR_Vampire_BloodKnight_VBlood, "Valencia"),
+        new (Prefabs.CHAR_ChurchOfLight_Paladin_VBlood, "Solarus"),
+        new (Prefabs.CHAR_Manticore_VBlood, "Talzur The Winged Horror"),
+        new (Prefabs.CHAR_Blackfang_Morgana_VBlood, "Megara the Serpent Queen"),
+        new (Prefabs.CHAR_Gloomrot_Monster_VBlood, "Adam"),
+        new (Prefabs.CHAR_Vampire_Dracula_VBlood, "Dracula")
+    ];
+
+	[Command("lockparabellumprogression", "lpp", description: "Locks the specific bosses from spawning for the Parabellum Progression.", adminOnly: true)]
+	public static void LockParabellum(ChatCommandContext ctx)
+	{
+		foreach (var boss in BossesToLock)
+		{
+			if (Core.Boss.LockBoss(boss))
+				ctx.Reply($"Locked {boss.Name}");
+			else
+				ctx.Reply($"{boss.Name} is already locked");
+		}
+	}
+
+	[Command("unlockparabellumprogression", "upp", description: "Unlocks the specific bosses from spawning for the Parabellum Progression.", adminOnly: true)]
+	public static void UnlockParabellum(ChatCommandContext ctx)
+	{
+		foreach (var boss in BossesToLock)
+		{
+			if (Core.Boss.UnlockBoss(boss))
+				ctx.Reply($"Unlocked {boss.Name}");
+			else
+				ctx.Reply($"{boss.Name} is already unlocked");
+		}
+	}
+
+	[Command("enablesoftbrutal", "esb", description: "Enable Soft-Brutal mode for bosses.", adminOnly: true)]
+	public static void EnableSoftBrutal(ChatCommandContext ctx)
+	{
+		var entityGameBalanceSettings = Helper.GetEntitiesByComponentType<ServerGameBalanceSettings>(includeAll: true).ToArray();
+
+		ServerGameBalanceSettings serverGameBalanceSettings = Core.Server.GetExistingSystemManaged<ServerGameSettingsSystem>()._Settings.ToStruct();
+		serverGameBalanceSettings.GameDifficulty = GameDifficulty.Hard;
+		Core.Server.EntityManager.SetComponentData(entityGameBalanceSettings[0], serverGameBalanceSettings);
+		ctx.Reply($"Bosses are now on Soft-Brutal mode.");
+	}
+	
+	[Command("disablesoftbrutal", "dsb", description: "Enable Soft-Brutal mode for bosses.", adminOnly: true)]
+	public static void DisableSoftBrutal(ChatCommandContext ctx)
+	{
+		var entityGameBalanceSettings = Helper.GetEntitiesByComponentType<ServerGameBalanceSettings>(includeAll: true).ToArray();
+
+		ServerGameBalanceSettings serverGameBalanceSettings = Core.Server.GetExistingSystemManaged<ServerGameSettingsSystem>()._Settings.ToStruct();
+		serverGameBalanceSettings.GameDifficulty = GameDifficulty.Normal;
+		Core.Server.EntityManager.SetComponentData(entityGameBalanceSettings[0], serverGameBalanceSettings);
+		ctx.Reply($"Bosses are now on Normal mode.");
+	}
+	#endregion
 }

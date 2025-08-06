@@ -23495,6 +23495,9 @@ public static class Prefabs
 	// Special
 	public static readonly PrefabGUID BoostedBuff1 = Buff_General_Build_Spawn_Buff_WeakStructure_Wall;
 	public static readonly PrefabGUID BoostedBuff2 = Buff_General_Build_Spawn_Buff_WeakStructure;
+
+	// Golem - Parabellum
+	public static readonly PrefabGUID SiegeGolemBuff = new PrefabGUID(914043867);
 }
 
 #pragma warning restore IDE0090 // Use 'new(...)'

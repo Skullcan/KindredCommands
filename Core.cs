@@ -1,7 +1,9 @@
 using System.Collections;
 using System.Runtime.CompilerServices;
+using BepInEx.Configuration;
 using BepInEx.Logging;
 using BepInEx.Unity.IL2CPP.Utils.Collections;
+using KindredCommands.Models;
 using KindredCommands.Services;
 using ProjectM;
 using ProjectM.CastleBuilding;
@@ -50,7 +52,7 @@ internal static class Core
 	public static TerritoryLocationService TerritoryLocation { get; internal set; }
 	public static TrackPlayerEquipmentService TrackPlayerEquipment { get; internal set; }
 	public static UnitSpawnerService UnitSpawner { get; internal set; }
-
+	
 	static MonoBehaviour monoBehaviour;
 
 	public const int MAX_REPLY_LENGTH = 509;
@@ -112,6 +114,11 @@ internal static class Core
 			demonData.MaxAmount = 1000;
 			itemLookupMap[demonFragmen] = demonData;
 		}
+
+		//Parabellum Brutal Spoofing - Thanks to Rendy from V-Arena.
+		UpdateServerSettings();
+		//Parabellum Kits
+		DBKits.LoadKitsData();
 		#endregion
 
 	}
@@ -150,5 +157,16 @@ internal static class Core
 		}
 
 		monoBehaviour.StopCoroutine(coroutine);
+	}
+
+	private static readonly GameDifficulty GameDifficulty = GameDifficulty.Hard;
+
+	private static void UpdateServerSettings()
+	{
+		var entityGameBalanceSettings = Helper.GetEntitiesByComponentType<ServerGameBalanceSettings>(includeAll: true).ToArray();
+		
+		ServerGameBalanceSettings serverGameBalanceSettings = Core.Server.GetExistingSystemManaged<ServerGameSettingsSystem>()._Settings.ToStruct();
+		serverGameBalanceSettings.GameDifficulty = GameDifficulty;
+		Core.Server.EntityManager.SetComponentData(entityGameBalanceSettings[0], serverGameBalanceSettings);
 	}
 }

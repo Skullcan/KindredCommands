@@ -1,17 +1,23 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using KindredCommands.Commands.Converters;
+using KindredCommands.Data;
 using ProjectM;
+using ProjectM.Behaviours;
 using ProjectM.Network;
+using ProjectM.Scripting;
 using ProjectM.UI;
 using Stunlock.Core;
+using Stunlock.Network;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
 using UnityEngine;
 using VampireCommandFramework;
+using static ProjectM.Hybrid.UseHybridModelPrefabsBlob;
 
 namespace KindredCommands.Commands;
 
@@ -295,6 +301,125 @@ public static class PlayerCommands
 		charEntity.Write(new LastTranslation { Value = pos });
 		ctx.Reply($"{charEntity.Read<PlayerCharacter>().Name} teleported to you.");
 	}
+
+	[Command("hassoulshard", "hss", description: "Check if a player has a soulshard.", adminOnly: true)]
+	public static void HasSoulShard(ChatCommandContext ctx, FoundPlayer player = null)
+	{
+		try
+		{
+			var charEntity = player?.Value.CharEntity ?? ctx.Event.SenderCharacterEntity;
+			
+			if (!InventoryUtilities.TryGetInventoryEntity(Core.EntityManager, charEntity, out Entity inventory))
+				return;
+
+			var serverGameManager = Core.ServerGameManager;
+			if (!serverGameManager.TryGetBuffer<InventoryBuffer>(inventory, out var inventoryBuffer))
+				return;
+
+			var noItemOnSlot = new PrefabGUID(0);									
+			var SolarusShard = new PrefabGUID(-21943750);
+			var MegaraShard = new PrefabGUID(1286615355);
+			var DraculaShard = new PrefabGUID(666638454);
+			var MonsterShard = new PrefabGUID(1581189572);
+			var ManticoreShard = new PrefabGUID(-1260254082);			
+			
+			var entityEquipment= charEntity.Read<Equipment>();
+			var equippedNeck = entityEquipment.GrimoireSlot.SlotId;
+
+			var soulShards = new HashSet<PrefabGUID>
+			{
+				SolarusShard,
+				MonsterShard,
+				ManticoreShard,
+				MegaraShard,
+				DraculaShard
+			};
+
+			if (soulShards.Contains(equippedNeck))
+			{
+				ctx.Reply($"{charEntity.Read<PlayerCharacter>().Name} has a Soul Shard equipped.");
+				return;
+			}
+
+			foreach (var itemEntry in inventoryBuffer)
+			{
+				var item = itemEntry.ItemType;
+				if (item == noItemOnSlot) { continue; }
+
+				if (soulShards.Contains(item))
+				{
+					ctx.Reply($"{charEntity.Read<PlayerCharacter>().Name} has a Soul Shard in their bags.");
+					return;
+				}
+			}
+			ctx.Reply($"{charEntity.Read<PlayerCharacter>().Name} doesn't have a Soul Shard.");
+		}
+		catch (Exception ex)
+		{
+			ctx.Reply($"Error using command. {ex.ToString()}");			
+		}
+	}
+
+	[Command("debuffplayer", "dpl", description: "Apply a damaging debuffs on a player as a warning.", adminOnly: true)]
+	public static void DebuffPlayer(ChatCommandContext ctx, FoundPlayer player = null)
+	{
+		try
+		{
+			if (player == null)
+			{
+				ctx.Reply($"Player doesn't exist.");
+				return;
+			}
+
+			var userEntity = player?.Value.UserEntity ?? ctx.Event.SenderUserEntity;
+			var charEntity = player?.Value.CharEntity ?? ctx.Event.SenderCharacterEntity;
+			var poisonDebuff = Prefabs.AB_Lucie_CripplingGoo_PoisonDebuff;
+			var manticoreDebuff = Prefabs.AB_Manticore_Flame_Chaos_Burn_LongDebuff;
+			var seaSerpentDebuff = Prefabs.AB_SeaSerpent_AcidPuke_PoisonDebuff;
+			var spiderQueenDebuff = Prefabs.AB_Spider_Queen_Poison_Debuff;
+			var heartStrikeDebuff = Prefabs.AB_Blood_HeartStrike_Debuff;
+			//var sunDamageDebuff = Prefabs.SunDamageDebuff;
+
+			var buffEntities = Helper.GetEntitiesByComponentTypes<Buff, PrefabGUID>();
+			var sgm = Core.ServerGameManager;
+
+			if (sgm.TryGetBuff(charEntity, poisonDebuff, out _)) { return; }
+			if (sgm.TryGetBuff(charEntity, seaSerpentDebuff, out _)) { return; }
+			if (sgm.TryGetBuff(charEntity, spiderQueenDebuff, out _)) { return; }
+			//if (sgm.TryGetBuff(charEntity, heartStrikeDebuff, out _)) { return; }
+			//if (sgm.TryGetBuff(charEntity, sunDamageDebuff, out _)) { return; }
+			
+
+			var fromCharacter = new FromCharacter() { Character = charEntity, User = userEntity };
+			
+			var applyLucileBuffDebugEvent = new ApplyBuffDebugEvent() { BuffPrefabGUID = poisonDebuff };
+			var applyManticoreBuffDebugEvent = new ApplyBuffDebugEvent() { BuffPrefabGUID = manticoreDebuff };
+			var applySeaSerpentBuffDebugEvent = new ApplyBuffDebugEvent() { BuffPrefabGUID = seaSerpentDebuff};
+			var applySpiderQueenBuffDebugEvent = new ApplyBuffDebugEvent() { BuffPrefabGUID = spiderQueenDebuff};
+			var applyHeartStrikeBuffDebugEvent = new ApplyBuffDebugEvent() { BuffPrefabGUID = heartStrikeDebuff};
+			//var applySunDamageBuffDebugEvent = new ApplyBuffDebugEvent() { BuffPrefabGUID = sunDamageDebuff };
+
+			debugEventsSystem.ApplyBuff(fromCharacter, applyLucileBuffDebugEvent);
+			debugEventsSystem.ApplyBuff(fromCharacter, applyManticoreBuffDebugEvent);
+			debugEventsSystem.ApplyBuff(fromCharacter, applySeaSerpentBuffDebugEvent);
+			debugEventsSystem.ApplyBuff(fromCharacter, applySpiderQueenBuffDebugEvent);
+			debugEventsSystem.ApplyBuff(fromCharacter, applyHeartStrikeBuffDebugEvent);
+			//debugEventsSystem.ApplyBuff(fromCharacter, applySunDamageBuffDebugEvent);
+
+			sgm.TryGetBuff(charEntity, poisonDebuff, out Entity lucileDebuffEntity);
+			sgm.TryGetBuff(charEntity, manticoreDebuff, out Entity manticoreDebuffEntity);
+			sgm.TryGetBuff(charEntity, seaSerpentDebuff, out Entity seaSerpentDebuffEntity);
+			sgm.TryGetBuff(charEntity, spiderQueenDebuff, out Entity spiderQueenDebuffEntity);
+			sgm.TryGetBuff(charEntity, heartStrikeDebuff, out Entity heartStrikeDebuffEntity);
+			//sgm.TryGetBuff(charEntity, sunDamageDebuff, out Entity sunDamageDebuffEntity);
+
+			ctx.Reply($"Debuffs applied to {charEntity.Read<PlayerCharacter>().Name}.");
+		}
+		catch (Exception ex)
+		{
+			ctx.Reply($"Error using command. {ex.ToString()}");
+		}
+	}	
 
 	#endregion
 

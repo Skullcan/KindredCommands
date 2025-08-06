@@ -257,6 +257,20 @@ internal class ConfigSettingsService
 		}
 	}
 
+	public bool KitHabilitado
+	{
+		get
+		{
+			return config.KitHabilitado;
+		}
+		set
+		{
+			config.KitHabilitado = value;
+			SaveConfig();
+		}
+	}
+
+
 	public void SetBloodBound(string key, bool value)
 	{
 		config.BloodBound[key] = value;
@@ -285,6 +299,7 @@ internal class ConfigSettingsService
 		SaveConfig();
 	}
 
+	
 	public struct PrisonerFeed
 	{
 		public float HealthChangeMin { get; set; }
@@ -304,6 +319,7 @@ internal class ConfigSettingsService
 			ItemDropLifetimeWhenDisabled = 300;
 			ShardDropLimit = 1;
 			ShardDropManagementEnabled = true;
+			KitHabilitado = false;
 		}
 
 		public bool RevealMapToAll { get; set; }
@@ -333,6 +349,7 @@ internal class ConfigSettingsService
 		public int? GruelTransformPrefabInt { get; set; }
 		public bool BatVision { get; set; }
 		public Dictionary<int, PrisonerFeed> PrisonerFeeds { get; set; } = [];
+		public bool KitHabilitado { get; set; } = false;
 	}
 
 	Config config;

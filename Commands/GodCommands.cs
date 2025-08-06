@@ -82,7 +82,27 @@ internal class GodCommands
 			ctx.Reply($"<color=yellow>Spectate</color> added to <color=white>{name}</color>");
 		}
 	}
+	#region Comandos Personalizados Parabellum
+	[Command("golem", adminOnly: true, description: "Toggles golem form on the target player")]
+	public static void GolemCommand(ChatCommandContext ctx, OnlinePlayer player = null)
+	{
+		var charEntity = player?.Value.CharEntity ?? ctx.Event.SenderCharacterEntity;
+		var userEntity = player?.Value.UserEntity ?? ctx.Event.SenderUserEntity;
+		var name = userEntity.Read<User>().CharacterName;
 
+		if (BuffUtility.HasBuff(Core.EntityManager, charEntity, Prefabs.SiegeGolemBuff))
+		{
+			Buffs.RemoveBuff(charEntity, Prefabs.SiegeGolemBuff);
+			ctx.Reply($"<color=yellow>Siege Golem</color> removed from <color=white>{name}</color>");
+		}
+		else
+		{
+
+			Buffs.AddBuff(userEntity, charEntity, Prefabs.SiegeGolemBuff, -1);
+			ctx.Reply($"<color=yellow>Siege Golem</color> added to <color=white>{name}</color>");
+		}
+	}
+	#endregion
 
 	[CommandGroup("boost", "bst")]
 	internal class BoostedCommands

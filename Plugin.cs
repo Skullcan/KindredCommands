@@ -1,9 +1,10 @@
 using BepInEx;
 using BepInEx.Logging;
 using BepInEx.Unity.IL2CPP;
-using KindredCommands.Models;
 using HarmonyLib;
+using KindredCommands.Models;
 using ProjectM;
+using Unity.Entities;
 using UnityEngine;
 using VampireCommandFramework;
 
@@ -30,7 +31,7 @@ public class Plugin : BasePlugin
 		// Harmony patching
 		Harmony = new Harmony(MyPluginInfo.PLUGIN_GUID);
 		Harmony.PatchAll(System.Reflection.Assembly.GetExecutingAssembly());
-
+	
 		// Register all commands in the assembly with VCF
 		CommandRegistry.RegisterAll();
 
@@ -62,5 +63,5 @@ public class Plugin : BasePlugin
 		// but also during reload when there is data to initialize with.
 		var collectionSystem = Core.Server.GetExistingSystemManaged<PrefabCollectionSystem>();
 		return collectionSystem?.SpawnableNameToPrefabGuidDictionary.Count > 0;
-	}
+	}	
 }
