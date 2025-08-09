@@ -7,6 +7,7 @@ using KindredCommands.Models;
 using KindredCommands.Services;
 using ProjectM;
 using ProjectM.CastleBuilding;
+using ProjectM.Network;
 using ProjectM.Physics;
 using ProjectM.Scripting;
 using Stunlock.Core;
@@ -19,7 +20,7 @@ internal static class Core
 {
 
 	public static World Server { get; } = GetWorld("Server") ?? throw new System.Exception("There is no Server world (yet). Did you install a server mod on the client?");
-
+	
 	public static EntityManager EntityManager { get; } = Server.EntityManager;
 	public static GameDataSystem GameDataSystem { get; } = Server.GetExistingSystemManaged<GameDataSystem>();
 	public static GenerateCastleSystem GenerateCastle { get; private set; }
@@ -52,7 +53,8 @@ internal static class Core
 	public static TerritoryLocationService TerritoryLocation { get; internal set; }
 	public static TrackPlayerEquipmentService TrackPlayerEquipment { get; internal set; }
 	public static UnitSpawnerService UnitSpawner { get; internal set; }
-	
+	public static SystemService SystemService { get; } = new(Server);
+
 	static MonoBehaviour monoBehaviour;
 
 	public const int MAX_REPLY_LENGTH = 509;
@@ -89,13 +91,13 @@ internal static class Core
 		SoulshardService = new();
 		TerritoryLocation = new();
 		TrackPlayerEquipment = new();
-		UnitSpawner = new();
+		UnitSpawner = new();		
 
 		Data.Character.Populate();
 
-		_hasInitialized = true;
+		_hasInitialized = true;		
 		Log.LogInfo($"{nameof(InitializeAfterLoaded)} completed");
-
+		
 		#region Personalizado Parabellum
 		// Limita o tamanho do stack da blood essence para ser possivel somente 5 dias de castelo full.
 		var scriptMapper = Server.GetExistingSystemManaged<ServerScriptMapper>();
@@ -118,7 +120,7 @@ internal static class Core
 		//Parabellum Brutal Spoofing - Thanks to Rendy from V-Arena.
 		UpdateServerSettings();
 		//Parabellum Kits
-		DBKits.LoadKitsData();
+		DBKits.LoadKitsData();		
 		#endregion
 
 	}
@@ -168,5 +170,34 @@ internal static class Core
 		ServerGameBalanceSettings serverGameBalanceSettings = Core.Server.GetExistingSystemManaged<ServerGameSettingsSystem>()._Settings.ToStruct();
 		serverGameBalanceSettings.GameDifficulty = GameDifficulty;
 		Core.Server.EntityManager.SetComponentData(entityGameBalanceSettings[0], serverGameBalanceSettings);
+	}
+
+	public static void RunDelayed(System.Action action, float delay = 0.25f)
+	{
+		StartCoroutine(RunDelayedRoutine(delay, action));
+	}
+	static IEnumerator RunDelayedRoutine(float delay, System.Action action)
+    {
+        yield return new WaitForSeconds(delay);
+        action?.Invoke();
+    }
+	public static bool TryGetComponent<T>(this Entity entity, out T componentData) where T : struct
+	{
+		componentData = default;
+
+		if (entity.Has<T>())
+		{
+			componentData = entity.Read<T>();
+			return true;
+		}
+
+		return false;
+	}
+	public static User GetUser(this Entity entity)
+	{
+		if (entity.TryGetComponent(out User user)) return user;
+		else if (entity.TryGetComponent(out PlayerCharacter playerCharacter) && playerCharacter.UserEntity.TryGetComponent(out user)) return user;
+
+		return User.Empty;
 	}
 }

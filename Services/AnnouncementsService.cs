@@ -53,6 +53,10 @@ class AnnouncementsService
 		do
 		{
 			yield return new WaitForSecondsRealtime((float)(announcementTime - DateTime.Now).TotalSeconds);
+			
+			if (announcementTime < DateTime.Now)
+				continue;
+
 			FixedString512Bytes message = announcement.Message;
 			ServerChatUtils.SendSystemMessageToAllClients(Core.EntityManager, ref message);
 

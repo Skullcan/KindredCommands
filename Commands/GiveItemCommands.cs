@@ -4,7 +4,9 @@ using KindredCommands.Commands.Converters;
 using KindredCommands.Models;
 using Newtonsoft.Json.Linq;
 using ProjectM;
+using ProjectM.Network;
 using Stunlock.Core;
+using Unity.Entities;
 using VampireCommandFramework;
 using static RootMotion.FinalIK.Grounding;
 
@@ -30,19 +32,25 @@ internal class GiveItemCommands
 		{
 			var PlatformId = ctx.User.PlatformId;
 			var kitAtual = DBKits.StartKits.First().Key;
+			var isAdmin = ctx.IsAdmin;
 
 			if (DBKits.StartKits.TryGetValue(kitAtual, out var Kit))
 			{
 				if (DBKits.UsedKits.TryGetValue(PlatformId, out var Used))
 				{
-					Core.Log.LogInfo($"Kit used status for {ctx.User.CharacterName} ({PlatformId}): {Used}");
-					if (!Used)
+					if (!Used || isAdmin)
 					{
-						GiveStartKit(ctx, Kit);
+						if (GiveStartKit(ctx, Kit)){
+							ctx.Reply($"Você recebeu um kit <color=#ffffffff>{kitAtual}</color>. Divirta-se!");
+							Core.Log.LogInfo($"Kit {kitAtual} given to {ctx.User.CharacterName} ({PlatformId})");
+						}
+						else
+						{
+							Core.Log.LogInfo($"Error giving {kitAtual} to {ctx.User.CharacterName} ({PlatformId}). Inventory is full.");
+						}
+
 						DBKits.UsedKits[PlatformId] = true;
-						ctx.Reply($"Você recebeu um kit <color=#ffffffff>{kitAtual}</color>. Divirta-se!");
 						DBKits.SaveData();
-						Core.Log.LogInfo($"Kit {kitAtual} given to {ctx.User.CharacterName} ({PlatformId})");
 					}
 					else
 					{
@@ -61,14 +69,21 @@ internal class GiveItemCommands
 		}				
 	}
 
-	private static void GiveStartKit(ChatCommandContext ctx, List<RecordKit> kit)
+	private static bool GiveStartKit(ChatCommandContext ctx, List<RecordKit> kit)
 	{
 		var prefabSys = Core.Server.GetExistingSystemManaged<PrefabCollectionSystem>();
 		foreach (var item in kit)
 		{
 			prefabSys._PrefabLookupMap.TryGetPrefabGuidWithName(item.Name, out PrefabGUID gUID);
-			Helper.AddItemToInventory(ctx.Event.SenderCharacterEntity, gUID, item.Amount);
+			var entity = Helper.AddItemToInventory(ctx.Event.SenderCharacterEntity, gUID, item.Amount);
+			if (entity == Entity.Null && !item.Name.Equals("Item_Consumable_HealingPotion_T01"))
+			{		
+				ctx.Reply($"Couldn't add all the items to your inventory. Message an Admin so he can give you full set again.");
+				return false;
+			}
 		}
+		return true;
+		
 	}
 
 	#endregion

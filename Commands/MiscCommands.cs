@@ -1,11 +1,22 @@
+using System;
 using System.Collections.Generic;
+using Il2CppInterop.Runtime;
+using Il2CppSystem;
+using KindredCommands.Models;
 using ProjectM;
+using ProjectM.Gameplay.WarEvents;
 using ProjectM.Network;
 using ProjectM.Shared;
+using ProjectM.Shared.WarEvents;
+using ProjectM.Shared.WorldEvents;
+using ProjectM.Terrain;
 using Stunlock.Core;
+using Unity.Collections;
 using Unity.Entities;
+using Unity.Mathematics;
 using Unity.Transforms;
 using VampireCommandFramework;
+using static NetworkEvents_Serialize;
 
 namespace KindredCommands.Commands
 {
@@ -103,6 +114,41 @@ namespace KindredCommands.Commands
 			{
 				ctx.Reply("Bat Vision is now disabled");
 			}
+		}
+
+		[Command("primalrift", "prift", description: "Allows admins to start a primal rift", adminOnly: true)]
+		public static void PrimalRift(ChatCommandContext ctx)
+		{
+			NetworkEventType networkEventType = new()
+			{
+				EventId = NetworkEvents.EventId_WarEvent_StartEvent,
+				IsAdminEvent = true,
+				IsDebugEvent = true
+			};
+
+			WarEvent_StartEvent warEvent = new()
+			{
+				EventType = WarEventType.Primal,
+				EnableAllGates = true
+			};
+
+			FromCharacter fromCharacter = new()
+			{
+				Character = ctx.Event.SenderCharacterEntity,
+				User = ctx.Event.SenderUserEntity
+			};
+
+			ComponentType[] _eventComponents =
+			[
+				ComponentType.ReadOnly(Il2CppType.Of<WarEvent_StartEvent>()),
+				ComponentType.ReadOnly(Il2CppType.Of<FromCharacter>()),
+				ComponentType.ReadOnly(Il2CppType.Of<NetworkEventType>())
+			];
+
+			Entity entity = Core.EntityManager.CreateEntity(_eventComponents);
+			entity.Write(warEvent);
+			entity.Write(fromCharacter);
+			entity.Write(networkEventType);
 		}
 	}
 }

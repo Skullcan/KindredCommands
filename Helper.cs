@@ -1,6 +1,6 @@
+using System;
 using System.Collections.Generic;
 using Il2CppInterop.Runtime;
-using Il2CppSystem;
 using KindredCommands.Data;
 using ProjectM;
 using ProjectM.CastleBuilding;
@@ -25,6 +25,7 @@ internal static partial class Helper
 	public static ClanSystem_Server clanSystem = Core.Server.GetExistingSystemManaged<ClanSystem_Server>();
 	public static EntityCommandBufferSystem entityCommandBufferSystem = Core.Server.GetExistingSystemManaged<EntityCommandBufferSystem>();
 
+	static readonly System.Random _random = new();
 	public static PrefabGUID GetPrefabGUID(Entity entity)
 	{
 		var entityManager = Core.EntityManager;
@@ -242,7 +243,7 @@ internal static partial class Helper
 			ctx?.Reply("Respawn");
 			var pos = Character.Read<LocalToWorld>().Position;
 
-			Nullable_Unboxed<float3> spawnLoc = new() { value = pos };
+			Il2CppSystem.Nullable_Unboxed<float3> spawnLoc = new() { value = pos };
 
 			ctx?.Reply("Respawn2");
 			var sbs = Core.Server.GetExistingSystemManaged<ServerBootstrapSystem>();
@@ -315,4 +316,37 @@ internal static partial class Helper
 		}
 	}
 	// add the component debugunlock
+
+	public static bool RollForChance(float chance)
+	{		
+		return _random.NextDouble() < chance;
+	}
+	public static void SetPosition(this Entity entity, float3 position)
+	{
+		if (entity.Has<Translation>())
+		{
+			entity.With((ref Translation translation) => translation.Value = position);
+		}
+
+		if (entity.Has<LastTranslation>())
+		{
+			entity.With((ref LastTranslation lastTranslation) => lastTranslation.Value = position);
+		}
+	}
+
+	public delegate void WithRefHandler<T>(ref T item);
+	public static void HasWith<T>(this Entity entity, WithRefHandler<T> action) where T : struct
+	{
+		if (entity.Has<T>())
+		{
+			entity.WithBloodCraft(action);
+		}
+	}
+	public static void WithBloodCraft<T>(this Entity entity, WithRefHandler<T> action) where T : struct
+	{
+		T item = entity.Read<T>();
+		action(ref item);
+
+		Core.EntityManager.SetComponentData(entity, item);
+	}
 }

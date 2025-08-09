@@ -349,7 +349,7 @@ internal class ConfigSettingsService
 		public int? GruelTransformPrefabInt { get; set; }
 		public bool BatVision { get; set; }
 		public Dictionary<int, PrisonerFeed> PrisonerFeeds { get; set; } = [];
-		public bool KitHabilitado { get; set; } = false;
+		public bool KitHabilitado { get; set; } = false;		
 	}
 
 	Config config;
