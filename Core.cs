@@ -30,9 +30,7 @@ internal static class Core
 	public static ServerScriptMapper ServerScriptMapper { get; internal set; }
 	public static double ServerTime => ServerGameManager.ServerTime;
 	public static ServerGameManager ServerGameManager => ServerScriptMapper.GetServerGameManager();
-
 	public static ServerGameSettingsSystem ServerGameSettingsSystem { get; internal set; }
-
 	public static ManualLogSource Log { get; } = Plugin.PluginLog;
 	public static AnnouncementsService AnnouncementsService { get; internal set; }
 	public static AuditService AuditService { get; } = new();
@@ -52,8 +50,7 @@ internal static class Core
 	public static SoulshardService SoulshardService { get; internal set; }
 	public static TerritoryLocationService TerritoryLocation { get; internal set; }
 	public static TrackPlayerEquipmentService TrackPlayerEquipment { get; internal set; }
-	public static UnitSpawnerService UnitSpawner { get; internal set; }
-	public static SystemService SystemService { get; } = new(Server);
+	public static UnitSpawnerService UnitSpawner { get; internal set; }	
 
 	static MonoBehaviour monoBehaviour;
 

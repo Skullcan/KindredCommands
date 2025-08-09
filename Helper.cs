@@ -316,11 +316,6 @@ internal static partial class Helper
 		}
 	}
 	// add the component debugunlock
-
-	public static bool RollForChance(float chance)
-	{		
-		return _random.NextDouble() < chance;
-	}
 	public static void SetPosition(this Entity entity, float3 position)
 	{
 		if (entity.Has<Translation>())
@@ -333,7 +328,6 @@ internal static partial class Helper
 			entity.With((ref LastTranslation lastTranslation) => lastTranslation.Value = position);
 		}
 	}
-
 	public delegate void WithRefHandler<T>(ref T item);
 	public static void HasWith<T>(this Entity entity, WithRefHandler<T> action) where T : struct
 	{
@@ -348,5 +342,139 @@ internal static partial class Helper
 		action(ref item);
 
 		Core.EntityManager.SetComponentData(entity, item);
+	}
+	public static void TryApplyBuffWithLifeTimeNone(this Entity entity, PrefabGUID buffPrefabGuid)
+	{
+		if (entity.TryApplyAndGetBuff(buffPrefabGuid, out Entity buffEntity))
+		{
+			buffEntity.AddWith((ref LifeTime lifeTime) =>
+			{
+				lifeTime.Duration = 0f;
+				lifeTime.EndAction = LifeTimeEndAction.None;
+			});
+		}
+	}
+	public static bool TryApplyAndGetBuff(this Entity entity, PrefabGUID buffPrefabGuid, out Entity buffEntity)
+	{
+		buffEntity = Entity.Null;
+
+		if (entity.TryApplyBuff(buffPrefabGuid) && entity.TryGetBuff(buffPrefabGuid, out buffEntity))
+		{
+			return true;
+		}
+
+		return false;
+	}
+	public static bool TryApplyBuff(this Entity entity, PrefabGUID prefabGuid)
+	{
+		bool hasBuff = entity.HasBuff(prefabGuid);
+
+		if (hasBuff && ShouldApplyStack(entity, prefabGuid, out Entity buffEntity, out byte stacks))
+		{
+			// ServerGameManager.CreateStacksIncreaseEvent(buffEntity, stacks, ++stacks);
+			Core.ServerGameManager.InstantiateBuffEntityImmediate(entity, entity, prefabGuid, null, stacks);
+		}
+		else if (!hasBuff)
+		{
+			ApplyBuffDebugEvent applyBuffDebugEvent = new()
+			{
+				BuffPrefabGUID = prefabGuid,
+				Who = entity.GetNetworkId(),
+			};
+
+			FromCharacter fromCharacter = new()
+			{
+				Character = entity,
+				User = entity.IsPlayer() ? entity.GetUserEntity() : entity
+			};
+
+            Core.Server.GetExistingSystemManaged<DebugEventsSystem>().ApplyBuff(fromCharacter, applyBuffDebugEvent);
+			
+			return true;
+		}
+
+		return false;
+	}
+	public static bool TryGetBuff(this Entity entity, PrefabGUID buffPrefabGUID, out Entity buffEntity)
+	{
+		if (Core.ServerGameManager.TryGetBuff(entity, buffPrefabGUID.ToIdentifier(), out buffEntity))
+		{
+			return true;
+		}
+
+		return false;
+	}
+	static readonly Dictionary<PrefabGUID, int> _buffMaxStacks = [];
+	static bool ShouldApplyStack(Entity entity, PrefabGUID prefabGuid, out Entity buffEntity, out byte stacks)
+	{
+		buffEntity = Entity.Null;
+		stacks = 0;
+
+		if (_buffMaxStacks.TryGetValue(prefabGuid, out int maxStacks)
+			&& entity.TryGetBuffStacks(prefabGuid, out buffEntity, out int buffStacks))
+		{
+			stacks = (byte)buffStacks;
+			return stacks < maxStacks;
+		}
+
+		return false;
+	}
+	public static bool TryGetBuffStacks(this Entity entity, PrefabGUID buffPrefabGUID, out Entity buffEntity, out int stacks)
+	{
+		stacks = 0;
+
+		if (Core.ServerGameManager.TryGetBuff(entity, buffPrefabGUID.ToIdentifier(), out buffEntity)
+			&& buffEntity.TryGetComponent(out Buff buff))
+		{
+			stacks = buff.Stacks;
+			return true;
+		}
+
+		return false;
+	}
+	public static bool HasBuff(this Entity entity, PrefabGUID buffPrefabGuid)
+	{
+		return Core.ServerGameManager.HasBuff(entity, buffPrefabGuid.ToIdentifier());
+	}
+	public static void AddWith<T>(this Entity entity, WithRefHandler<T> action) where T : struct
+	{
+		if (!entity.Has<T>())
+		{
+			entity.Add<T>();
+		}
+
+		entity.WithHelper(action);
+	}
+	public static void WithHelper<T>(this Entity entity, WithRefHandler<T> action) where T : struct
+	{
+		T item = entity.Read<T>();
+		action(ref item);
+
+		Core.EntityManager.SetComponentData(entity, item);
+	}
+	public static bool IsPlayer(this Entity entity)
+	{
+		if (entity.Has<PlayerCharacter>())
+		{
+			return true;
+		}
+
+		return false;
+	}
+	public static NetworkId GetNetworkId(this Entity entity)
+	{
+		if (entity.TryGetComponent(out NetworkId networkId))
+		{
+			return networkId;
+		}
+
+		return NetworkId.Empty;
+	}
+	public static Entity GetUserEntity(this Entity entity)
+	{
+		if (entity.TryGetComponent(out PlayerCharacter playerCharacter)) return playerCharacter.UserEntity;
+		else if (entity.Has<User>()) return entity;
+
+		return Entity.Null;
 	}
 }
